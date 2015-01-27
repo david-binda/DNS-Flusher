@@ -1,33 +1,20 @@
 <script>
-var	bm = chrome.benchmarking,
+var	bridge = BrowserBridge.prototype,
 	tabs = chrome.tabs,
-	optUrl = 'dns-flusher-options.html',
-	reload = localStorage.getItem('reload');
-
-if(null == reload){ // first install
-	localStorage.setItem('reload', true);
-	if(undefined == bm){ // benchmarking disabled
-		tabs.create({url: optUrl});
-	}
-};
-
-window.addEventListener('storage', function(ev){
-	if('reload' === ev.key) reload = ev.newValue;
-}, false);
+	optUrl = 'chrome://net-internals',
 
 chrome.browserAction.onClicked.addListener(function(){
-	if(undefined == bm){ // benchmarking disabled
-		tabs.query({url: 'chrome-extension://*/' + optUrl}, function(tabArr){
+	if(undefined == bridge){
+		tabs.query({url: optUrl}, function(tabArr){
 			if(tabArr.length > 0){
-				tabs.update(tabArr[0].id, {active: true});	
+				tabs.executeScript(tabArr[0].id, "bridge.sendClearHostResolverCache();bridge.sendFlushSocketPools();");
 			}else{
-				tabs.create({url: optUrl});
+				tabs.create({url: optUrl}, function( tabArr ) {
+					tabs.executeScript(tabArr.id, "bridge.sendClearHostResolverCache();bridge.sendFlushSocketPools();");
+				} );
 			}
 		});
 		return;
 	}
-	// benchmarking enabled
-	bm.clearHostResolverCache();
-	if('true' === reload) tabs.reload();
 });
 </script>
